@@ -53,3 +53,19 @@
 2025-11-24 01:37:18,230 - INFO - Iter 50: Rel Res = 9.2278e-05
 2025-11-24 01:37:18,261 - INFO - Finished: Iters=50, CPU(s)=29.117171, Error=8.699926e-03
 2025-11-24 01:37:18,264 - INFO - Summary: N=512, V-Cycles=50, CPU(s)=29.117171, Error=8.699926e-03, ResidualFile=residuals_v_cycle_N512.csv
+2025-11-24 02:20:15,775 - INFO - Run V-cycle: N=512, h=0.001953125
+2025-11-24 02:20:15,775 - INFO - --- Solving Stokes (DGS-MG) for N=512 ---
+2025-11-24 02:20:15,802 - INFO - Init Residual: 3.4999e+04
+2025-11-24 02:20:16,473 - INFO - Iter 1: Rel Res = 4.4095e+00
+2025-11-24 02:20:17,094 - INFO - Iter 2: Rel Res = 2.7031e+00
+2025-11-24 02:20:17,744 - INFO - Iter 3: Rel Res = 2.1213e+00
+2025-11-24 02:20:18,473 - INFO - Iter 4: Rel Res = 1.6325e+00
+2025-11-24 02:20:19,144 - INFO - Iter 5: Rel Res = 1.2789e+00
+2025-11-24 02:20:19,801 - INFO - Iter 6: Rel Res = 1.0023e+00
+2025-11-24 02:20:20,395 - INFO - Iter 7: Rel Res = 7.8778e-01
+2025-11-24 02:20:21,072 - INFO - Iter 8: Rel Res = 6.1968e-01
+2025-11-24 02:20:21,692 - INFO - Iter 9: Rel Res = 4.8787e-01
+2025-11-24 02:20:22,247 - INFO - Iter 10: Rel Res = 3.8427e-01
+2025-11-24 02:20:22,849 - INFO - Iter 11: Rel Res = 3.0278e-01
+2025-11-24 02:20:23,575 - INFO - Iter 12: Rel Res = 2.3863e-01
+2025-11-24 02:20:24,197 - INFO - Iter 13: Rel Res = 1.8810e-01
