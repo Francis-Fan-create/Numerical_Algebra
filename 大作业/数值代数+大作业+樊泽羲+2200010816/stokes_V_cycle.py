@@ -5,7 +5,7 @@ import csv
 import logging
 
 class StokesMultigrid:
-    def __init__(self, N):
+    def __init__(self, N, nu1=3, nu2=3, L=None):
         """
         Initialize Staggered Grid for Stokes Equations.
         N: Grid resolution (must be power of 2)
@@ -13,6 +13,15 @@ class StokesMultigrid:
         """
         self.N = N
         self.h = 1.0 / N
+        # Pre-smoothing and post-smoothing iteration counts
+        self.nu1 = int(nu1)
+        self.nu2 = int(nu2)
+        # Number of multigrid levels (coarsest resolution will be N_coarse=2**(L-1))
+        if L is None:
+            # default: maximum allowed by grid resolution
+            self.L = int(np.log2(N))
+        else:
+            self.L = int(L)
         
         # --- Grid Storage ---
         # u: Vertical edges, size (N+1) x N. 
@@ -107,8 +116,10 @@ class StokesMultigrid:
         v[:, :-1] -= delta
         v[:, 1:] += delta
         
-        # Simplified pressure update
+        # Simplified pressure update and enforce zero-mean for pressure (to fix null-space)
         p += alpha * r
+        # Ensure zero-mean pressure to keep pressure uniquely defined
+        p -= np.mean(p)
 
     def compute_residual_norm(self, u, v, p, f, g, h):
         """Calculate L2 Norm of Residuals"""
@@ -212,19 +223,20 @@ class StokesMultigrid:
         
         return du, dv, dp
 
-    def v_cycle(self, u, v, p, f, g, h):
+    def v_cycle(self, u, v, p, f, g, h, level=0):
         """V-Cycle"""
         N = p.shape[0]
         
         # Adaptive damping for coarse grid correction
         beta = 0.6 if N >= 512 else 0.8
         
-        # Pre-smoothing - increased iterations
-        for _ in range(3):
+        # Pre-smoothing
+        for _ in range(self.nu1):
             self.dgs_smoother(u, v, p, f, g, h)
             
         # Base case
-        if N <= 4:
+        # Base case: use coarse grid when the number of cells is small or when levels are exhausted
+        if N <= 4 or level >= (self.L - 1):
             for _ in range(20):
                 self.dgs_smoother(u, v, p, f, g, h)
             return
@@ -250,7 +262,7 @@ class StokesMultigrid:
         ec_u = np.zeros_like(rc_u)
         ec_v = np.zeros_like(rc_v)
         ec_p = np.zeros_like(rc_p)
-        self.v_cycle(ec_u, ec_v, ec_p, rc_u, rc_v, 2*h)
+        self.v_cycle(ec_u, ec_v, ec_p, rc_u, rc_v, 2*h, level+1)
         
         # Prolongate and correct with adaptive damping
         du, dv, dp = self.prolongate(ec_u, ec_v, ec_p)
@@ -258,8 +270,8 @@ class StokesMultigrid:
         v += beta * dv
         p += beta * dp
         
-        # Post-smoothing - increased iterations
-        for _ in range(3):
+        # Post-smoothing
+        for _ in range(self.nu2):
             self.dgs_smoother(u, v, p, f, g, h)
 
     def solve(self, logger=None):
@@ -307,7 +319,7 @@ class StokesMultigrid:
 
 # --- Main Execution Block ---
 if __name__ == "__main__":
-    N_list = [64, 128, 256, 512, 1024]
+    N_list = [64, 128, 256, 512, 1024, 2048]
     
     print(f"\n{'N':<6} | {'V-Cycles':<8} | {'CPU Time(s)':<12} | {'Error e_N':<12}")
     print("-" * 46)
@@ -323,7 +335,7 @@ if __name__ == "__main__":
     summary_file = os.path.join(results_dir, "results_v_cycle.csv")
     with open(summary_file, "w", newline='') as sf:
         writer = csv.writer(sf)
-        writer.writerow(["N", "V-Cycles", "CPU Time(s)", "Error e_N", "InitialRelRes", "FinalRelRes", "ResidualFile"])
+        writer.writerow(["N", "V-Cycles", "CPU Time(s)", "Error e_N", "nu1", "nu2", "L", "InitialRelRes", "FinalRelRes", "ResidualFile"])
         for N in N_list:
             solver = StokesMultigrid(N)
             # per-run subfolder
@@ -350,7 +362,7 @@ if __name__ == "__main__":
                 for idx, val in enumerate(res_hist):
                     w2.writerow([idx, val])
 
-            summary_row = (N, it, t, err, res_hist[0], res_hist[-1], os.path.basename(residuals_file))
+            summary_row = (N, it, t, err, solver.nu1, solver.nu2, solver.L, res_hist[0], res_hist[-1], os.path.basename(residuals_file))
             writer.writerow(summary_row)
             sf.flush()
             summary_rows.append(summary_row)

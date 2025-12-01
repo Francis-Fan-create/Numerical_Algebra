@@ -136,6 +136,137 @@ class PoissonMGSolver:
         # 1. Pre-Smoothing
         for _ in range(2): 
             self.relax(u, f, h)
+
+
+class RectangularPoissonMGSolver:
+    """Multigrid solver for rectangular grids (generalized Poisson).
+    Grid arrays include boundary lines: shape=(nrows, ncols) where interior
+    unknowns are [1:-1, 1:-1] or other boundary patterns depending on staggered
+    layout. For our use in Inexact Uzawa preconditioning, we will expect arrays
+    shaped like u-grid (N+1,N) or v-grid (N,N+1).
+    """
+    def __init__(self, nrows, ncols, nu1=2, nu2=2, L=None):
+        self.nrows = nrows
+        self.ncols = ncols
+        self.nu1 = int(nu1)
+        self.nu2 = int(nu2)
+        if L is None:
+            # levels approximated by min(log2(nrows-1), log2(ncols-1))
+            self.L = int(min(np.log2(max(2, nrows-1)), np.log2(max(2, ncols-1))))
+        else:
+            self.L = int(L)
+
+    def relax(self, u, f, h):
+        h2 = h**2
+        rows, cols = u.shape
+        # Use symmetric sweeps: forward then backward color ordering to help
+        # keep preconditioner approximately symmetric.
+        for color in [0, 1, 1, 0]:
+            I, J = np.meshgrid(np.arange(1, rows-1), np.arange(1, cols-1), indexing='ij')
+            mask = (I + J) % 2 == color
+            u_up = u[1:-1, 2:]
+            u_down = u[1:-1, 0:-2]
+            u_left = u[0:-2, 1:-1]
+            u_right = u[2:, 1:-1]
+            f_inner = f[1:-1, 1:-1]
+            u_inner = u[1:-1, 1:-1]
+            u_inner[mask] = 0.25 * (u_up[mask] + u_down[mask] + u_left[mask] + u_right[mask] + h2 * f_inner[mask])
+
+    def restrict(self, r):
+        nr, nc = r.shape
+        Nf_r = nr - 1
+        Nf_c = nc - 1
+        Nc_r = Nf_r // 2
+        Nc_c = Nf_c // 2
+        rc = np.zeros((Nc_r + 1, Nc_c + 1))
+        for i in range(Nc_r + 1):
+            for j in range(Nc_c + 1):
+                i_f, j_f = 2*i, 2*j
+                val = 0.25 * r[i_f, j_f]
+                # edges
+                if i_f - 1 >= 0:
+                    val += 0.125 * r[i_f - 1, j_f]
+                if i_f + 1 < nr:
+                    val += 0.125 * r[i_f + 1, j_f]
+                if j_f - 1 >= 0:
+                    val += 0.125 * r[i_f, j_f - 1]
+                if j_f + 1 < nc:
+                    val += 0.125 * r[i_f, j_f + 1]
+                # corners
+                if i_f - 1 >= 0 and j_f - 1 >= 0:
+                    val += 0.0625 * r[i_f - 1, j_f - 1]
+                if i_f - 1 >= 0 and j_f + 1 < nc:
+                    val += 0.0625 * r[i_f - 1, j_f + 1]
+                if i_f + 1 < nr and j_f - 1 >= 0:
+                    val += 0.0625 * r[i_f + 1, j_f - 1]
+                if i_f + 1 < nr and j_f + 1 < nc:
+                    val += 0.0625 * r[i_f + 1, j_f + 1]
+                rc[i, j] = val
+        return rc
+
+    def prolongate_add(self, u, ec):
+        # Bilinear interpolation/prolongation with edge-aware padding for
+        # rectangular coarse arrays.
+        ec_ex = np.zeros_like(u)
+        # Place coincident coarse values
+        ec_ex[0::2, 0::2] = ec
+
+        # Vertical averages for odd rows, even cols
+        if ec.shape[0] > 1:
+            # pad last row to ensure shapes match for rectangular arrays
+            ec_pad_v = np.pad(ec, ((0,1), (0,0)), mode='edge')
+            vv = 0.5 * (ec_pad_v[:-1, :] + ec_pad_v[1:, :])
+            tr_v = ec_ex[1::2, 0::2]
+            ec_ex[1::2, 0::2][:vv.shape[0], :vv.shape[1]] = vv[:tr_v.shape[0], :tr_v.shape[1]]
+
+        # Horizontal averages for even rows, odd cols
+        if ec.shape[1] > 1:
+            # pad right edge to avoid shape mismatch when coarse columns < fine odd columns
+            ec_pad = np.pad(ec, ((0, 0), (0, 1)), mode='edge')
+            hh = 0.5 * (ec_pad[:, :-1] + ec_pad[:, 1:])
+            target = ec_ex[0::2, 1::2]
+            # ensure shape match by trimming
+            ec_ex[0::2, 1::2][:target.shape[0], :target.shape[1]] = hh[:target.shape[0], :target.shape[1]]
+
+        # Centers (odd rows, odd cols): compute via padded interior average
+        if ec.shape[0] > 1 and ec.shape[1] > 1:
+            ec_ppad = np.pad(ec, ((0, 1), (0, 1)), mode='edge')
+            cc = 0.25 * (ec_ppad[:-1, :-1] + ec_ppad[1:, :-1] + ec_ppad[:-1, 1:] + ec_ppad[1:, 1:])
+            # target area
+            tr = ec_ex[1::2, 1::2]
+            ec_ex[1::2, 1::2][:tr.shape[0], :tr.shape[1]] = cc[:tr.shape[0], :tr.shape[1]]
+
+        u += ec_ex
+
+    def v_cycle(self, u, f, h, level=0):
+        # Pre-smoothing
+        for _ in range(self.nu1):
+            self.relax(u, f, h)
+        nr, nc = u.shape
+        if nr <= 4 or nc <= 4 or level >= (self.L - 1):
+            # direct relaxation with a bunch of smoothing steps
+            for _ in range(10):
+                self.relax(u, f, h)
+            return
+        # residual - compute Laplacian using neighbor slices (safe for rectangular shapes)
+        u_mid = u[1:-1, 1:-1]
+        u_up = u[1:-1, 2:]
+        u_down = u[1:-1, 0:-2]
+        u_left = u[0:-2, 1:-1]
+        u_right = u[2:, 1:-1]
+        lap_u = (u_up + u_down + u_left + u_right - 4*u_mid) / h**2
+        r = np.zeros_like(u)
+        r[1:-1, 1:-1] = f[1:-1, 1:-1] - (-lap_u)
+        # restrict
+        rc = self.restrict(r)
+        # Solve coarse grid Ae = rc (with rc used as f on coarse grid)
+        ec = np.zeros_like(rc)
+        self.v_cycle(ec, rc, 2*h, level+1)
+        # prolongate-add
+        self.prolongate_add(u, ec)
+        # post-smoothing
+        for _ in range(self.nu2):
+            self.relax(u, f, h)
         
         # Base Case: Coarsest grid (e.g., 2x2 or 4x4)
         if u.shape[0] <= 4:
@@ -163,49 +294,71 @@ class PoissonMGSolver:
 
 
 class InexactUzawaSolver:
-    def __init__(self, N):
+    def __init__(self, N, alpha=None, tau=1e-6, inner_iters=2, use_mg=False, nu1=2, nu2=2, L=None, debug=False):
         """
         Inexact Uzawa Solver .
         N: Grid resolution.
         """
         self.N = N
         self.h = 1.0 / N
-        # Choose alpha proportional to h^2 (stable step for pressure updates)
-        # Schur complement eigenvalues scale ~ 1/h^2, so α = O(h^2) is stable.
-        self.alpha = 0.125 * self.h**2
+        # Choose alpha proportional to h^2 by default (stable step for pressure updates)
+        if alpha is None:
+            self.alpha = 0.125 * self.h**2
+        else:
+            self.alpha = alpha
         # Number of inner solver iterations (CG or MG) to perform per outer step
-        self.inner_iters = 2
+        self.inner_iters = int(inner_iters)
         # Toggle: use MG inner solvers (True) or sparse matrix-based CG (False)
-        self.use_mg = False
+        self.use_mg = bool(use_mg)
+        # Debug mode: print additional diagnostics
+        self.debug = bool(debug)
+        self.tau = float(tau)
+        self.nu1 = int(nu1)
+        self.nu2 = int(nu2)
+        self.L = None if L is None else int(L)
         
         # Data Structures:
-        # Use full (N+1)x(N+1) grids for simplicity
-        # Staggered interpretation: u on vertical edges, v on horizontal edges
-        self.u = np.zeros((N+1, N+1)) 
-        self.v = np.zeros((N+1, N+1))
+        # Use staggered MAC storage consistent with other modules
+        # u: vertical edges, size (N+1) x N
+        # v: horizontal edges, size N x (N+1)
+        self.u = np.zeros((N+1, N))
+        self.v = np.zeros((N, N+1))
         self.p = np.zeros((N, N))
         
-        # Inner Solver - use the multigrid solver
+        # Inner solvers for preconditioning
         self.mg_solver = PoissonMGSolver(N)
+        # Rectangular MG for u and v inner solves if using MG preconditioning
+        self.mg_u = RectangularPoissonMGSolver(N+1, N, nu1=self.nu1, nu2=self.nu2, L=self.L)
+        self.mg_v = RectangularPoissonMGSolver(N, N+1, nu1=self.nu1, nu2=self.nu2, L=self.L)
         # Build sparse operators (A_u, A_v) for inner CG solves (ensures consistent discretization)
         self.build_operators()
         
         self.init_rhs()
+        # Build cheap diagonal preconditioner for CG inner solvers (fast)
+        self.Mu_diag = None
+        self.Mv_diag = None
+        if self.A_u is not None:
+            diag = self.A_u.diagonal()
+            inv_diag = 1.0 / (diag + 1e-16)
+            self.Mu_diag = spla.LinearOperator(self.A_u.shape, matvec=lambda x, inv=inv_diag: inv * x)
+        if self.A_v is not None:
+            diag = self.A_v.diagonal()
+            inv_diag = 1.0 / (diag + 1e-16)
+            self.Mv_diag = spla.LinearOperator(self.A_v.shape, matvec=lambda x, inv=inv_diag: inv * x)
 
     def init_rhs(self):
         """Initialize exact force terms [cite: 133-134]"""
-        # u-grid physical coordinates (for f) - full (N+1)x(N+1)
-        I, J = np.meshgrid(np.arange(self.N+1), np.arange(self.N+1), indexing='ij')
+        # u-grid physical coordinates (for f) - full (N+1)xN
+        I, J = np.meshgrid(np.arange(self.N+1), np.arange(self.N), indexing='ij')
         X_u = I * self.h
         Y_u = (J + 0.5) * self.h
         self.f = -4 * np.pi**2 * (2 * np.cos(2*np.pi*X_u) - 1) * np.sin(2*np.pi*Y_u) + X_u**2
-        self.f[:, -1] = 0  # Last column not used for u
 
-        # v-grid physical coordinates (for g) - full (N+1)x(N+1)
-        X_v = (I + 0.5) * self.h
-        Y_v = J * self.h
+        # v-grid physical coordinates (for g) - full N x (N+1)
+        I_v, J_v = np.meshgrid(np.arange(self.N), np.arange(self.N+1), indexing='ij')
+        X_v = (I_v + 0.5) * self.h
+        Y_v = J_v * self.h
         self.g = 4 * np.pi**2 * (2 * np.cos(2*np.pi*Y_v) - 1) * np.sin(2*np.pi*X_v)
-        self.g[-1, :] = 0  # Last row not used for v
 
     def build_operators(self):
         """
@@ -246,39 +399,30 @@ class InexactUzawaSolver:
         
         # 1. Momentum Residuals (Interior Points)
         # res_u = f - (-Lap(u) + p_x)
-        # u is stored in (N+1, N+1) but only u[:, :N] are active
-        # Interior u points: u[1:N, :N] (excluding top/bottom boundaries)
-        u = self.u
-        u_active = u[:, :self.N]  # (N+1, N)
+        # u is stored in (N+1, N)
+        u_ext = self.u
         # Laplacian at interior points [1:-1, :] which is (N-1, N)
-        lap_u = (u_active[0:-2, :] + u_active[2:, :] + 
-                 np.pad(u_active[1:-1, :-1], ((0,0),(1,0)), mode='constant') + 
-                 np.pad(u_active[1:-1, 1:], ((0,0),(0,1)), mode='constant') - 
-                 4*u_active[1:-1, :]) / h**2
+        u_pad = np.pad(u_ext, ((0,0), (1,1)), 'constant')
+        lap_u = (u_ext[0:-2, :] + u_ext[2:, :] + u_pad[1:-1, 0:-2] + u_pad[1:-1, 2:] - 4*u_ext[1:-1, :]) / h**2
         
         # p_x: pressure gradient (N-1, N)
         p_arr = self.p if p_override is None else p_override
         px = (p_arr[1:, :] - p_arr[:-1, :]) / h
         
         # Residual on interior points (N-1, N)
-        r_u = self.f[1:-1, :self.N] - (-lap_u + px)
+        r_u = self.f[1:-1, :] - (-lap_u + px)
         
         # res_v = g - (-Lap(v) + p_y)
-        # v is stored in (N+1, N+1) but only v[:N, :] are active
-        # Interior v points: v[:N, 1:N] (excluding left/right boundaries)
-        v = self.v
-        v_active = v[:self.N, :]  # (N, N+1)
-        # Laplacian at interior points [:, 1:-1] which is (N, N-1)
-        lap_v = (np.pad(v_active[:-1, 1:-1], ((1,0),(0,0)), mode='constant') + 
-                 np.pad(v_active[1:, 1:-1], ((0,1),(0,0)), mode='constant') + 
-                 v_active[:, 0:-2] + v_active[:, 2:] - 
-                 4*v_active[:, 1:-1]) / h**2
+        # v is stored in (N, N+1)
+        v_ext = self.v
+        v_pad = np.pad(v_ext, ((1,1), (0,0)), 'constant')
+        lap_v = (v_pad[0:-2, 1:-1] + v_pad[2:, 1:-1] + v_ext[:, 0:-2] + v_ext[:, 2:] - 4*v_ext[:, 1:-1]) / h**2
         
         # p_y: pressure gradient (N, N-1)
         py = (p_arr[:, 1:] - p_arr[:, :-1]) / h
         
         # Residual on interior points (N, N-1)
-        r_v = self.g[:self.N, 1:-1] - (-lap_v + py)
+        r_v = self.g[:, 1:-1] - (-lap_v + py)
         
         # 2. Divergence Residual (Constraint)
         # div = (u_x + v_y) on pressure grid
@@ -303,74 +447,152 @@ class InexactUzawaSolver:
         tol = 1e-8
         # Report which inner solver is used
         if logger is not None:
-            solver_name = 'MG' if self.use_mg else 'CG'
+            solver_name = 'MG-GMRES' if self.use_mg else 'CG'
             logger.info(f"Inner solver: {solver_name}, inner_iters={self.inner_iters}, alpha={self.alpha:.6e}")
         rel_res = 1.0
         res_history = [rel_res]
         k = 0
         
+        # Build preconditioners if requested
+        M_u = None
+        M_v = None
+        if self.use_mg and self.A_u is not None and self.A_v is not None:
+            # MG preconditioner for u
+            def pre_u(x):
+                # map x -> fine grid extended RHS
+                b_ext = np.zeros((self.N + 1, self.N))
+                b_ext[1:-1, :] = x.reshape((self.N - 1, self.N))
+                u_ext = np.zeros_like(b_ext)
+                self.mg_u.v_cycle(u_ext, b_ext, self.h)
+                return u_ext[1:-1, :].flatten()
+            M_u = spla.LinearOperator(self.A_u.shape, matvec=pre_u)
+            # MG preconditioner for v
+            def pre_v(x):
+                b_ext = np.zeros((self.N, self.N + 1))
+                b_ext[:, 1:-1] = x.reshape((self.N, self.N - 1))
+                v_ext = np.zeros_like(b_ext)
+                self.mg_v.v_cycle(v_ext, b_ext, self.h)
+                return v_ext[:, 1:-1].flatten()
+            M_v = spla.LinearOperator(self.A_v.shape, matvec=pre_v)
+
         # Iteration Loop [cite: 108-111]
         # Iteration loop
+        logger.info(f"Starting solve with initial alpha={self.alpha:.6e}") if logger is not None else print(f"Starting solve with initial alpha={self.alpha:.6e}")
         while rel_res > tol and k < 200:
             # 1. RHS for Poisson Steps
             # rhs_u = f - p_x
             px = (self.p[1:, :] - self.p[:-1, :]) / self.h
             rhs_u = self.f.copy()
-            rhs_u[1:-1, :self.N] -= px
+            rhs_u[1:-1, :] -= px
             
             # rhs_v = g - p_y
             py = (self.p[:, 1:] - self.p[:, :-1]) / self.h
             rhs_v = self.g.copy()
             rhs_v[:self.N, 1:-1] -= py
             
-            # 2. Approximate Velocity Solve (multigrid V-cycle)
-            r_before_mg = self.compute_residual_norm()
-            # Use sparse CG inner solves on properly-mapped interior unknowns
-            if self.A_u is not None and self.A_v is not None and not self.use_mg:
-                for _ in range(max(1, self.inner_iters)):
-                    # Solve for u (interior only) using CG
+            # 2. Approximate Velocity Solve (CG or MG)
+            # (Optional diagnostic: compute momentum/divergence norms before inner solve)
+            if self.debug and logger is not None:
+                r_u_vec = None
+                if self.A_u is not None:
                     u_interior = self.u[1:-1, :self.N]
                     u_vec = u_interior.flatten()
                     b_u = rhs_u[1:-1, :self.N].flatten()
-                    sol_u, _ = spla.cg(self.A_u, b_u, x0=u_vec, rtol=1e-6, atol=1e-12)
-                    u_interior[:, :] = sol_u.reshape(u_interior.shape)
-
-                    # Solve for v (interior only)
+                    r_u_vec = b_u - self.A_u.dot(u_vec)
+                r_v_vec = None
+                if self.A_v is not None:
                     v_interior = self.v[:self.N, 1:-1]
                     v_vec = v_interior.flatten()
                     b_v = rhs_v[:self.N, 1:-1].flatten()
-                    sol_v, _ = spla.cg(self.A_v, b_v, x0=v_vec, rtol=1e-6, atol=1e-12)
+                    r_v_vec = b_v - self.A_v.dot(v_vec)
+                div_arr = (self.u[1:self.N+1, :self.N] - self.u[:self.N, :self.N]) / self.h + (self.v[:self.N, 1:self.N+1] - self.v[:self.N, :self.N]) / self.h
+                div_vec = div_arr.flatten()
+                if r_u_vec is not None and r_v_vec is not None:
+                    logger.info(f"Before inner: ||r_u||={np.linalg.norm(r_u_vec):.3e}, ||r_v||={np.linalg.norm(r_v_vec):.3e}, ||div||={np.linalg.norm(div_vec):.3e}")
+            # Use sparse CG inner solves on properly-mapped interior unknowns
+            if self.A_u is not None and self.A_v is not None and not self.use_mg:
+                for _ in range(max(1, self.inner_iters)):
+                    # Solve for u (interior only) using preconditioned CG
+                    u_interior = self.u[1:-1, :self.N]
+                    u_vec = u_interior.flatten()
+                    b_u = rhs_u[1:-1, :self.N].flatten()
+                    if self.debug and self.N <= 64:
+                        # For debugging small N: direct SPARSE solve to check exact behavior
+                        sol_u = spla.spsolve(self.A_u.tocsr(), b_u)
+                        info_u = 0
+                    else:
+                        sol_u, info_u = spla.cg(self.A_u, b_u, x0=u_vec, rtol=self.tau, M=self.Mu_diag)
+                    if info_u != 0:
+                        logging.warning(f"CG inner solve for A_u did not converge: info={info_u}")
+                    u_interior[:, :] = sol_u.reshape(u_interior.shape)
+
+                    # Solve for v (interior only) using preconditioned CG
+                    v_interior = self.v[:self.N, 1:-1]
+                    v_vec = v_interior.flatten()
+                    b_v = rhs_v[:self.N, 1:-1].flatten()
+                    if self.debug and self.N <= 64:
+                        sol_v = spla.spsolve(self.A_v.tocsr(), b_v)
+                        info_v = 0
+                    else:
+                        sol_v, info_v = spla.cg(self.A_v, b_v, x0=v_vec, rtol=self.tau, M=self.Mv_diag)
+                    if info_v != 0:
+                        logging.warning(f"CG inner solve for A_v did not converge: info={info_v}")
                     v_interior[:, :] = sol_v.reshape(v_interior.shape)
             else:
-                # fallback to MG in case sparse operators are requested or sparse operators are not built
-                for _ in range(max(1, self.inner_iters)):
-                    self.mg_solver.v_cycle(self.u, rhs_u, self.h)
-                    self.mg_solver.v_cycle(self.v, rhs_v, self.h)
-            r_after_mg = self.compute_residual_norm()
-            
-            # 3. Update Pressure (P += alpha * Div u) [cite: 110]
-            div = (self.u[1:self.N+1, :self.N] - self.u[:self.N, :self.N])/self.h + (self.v[:self.N, 1:self.N+1] - self.v[:self.N, :self.N])/self.h
+                # Use preconditioned GMRES with MG preconditioner if requested, otherwise fallback to MG v_cycle
+                if self.A_u is not None and self.A_v is not None and self.use_mg:
+                    for _ in range(max(1, self.inner_iters)):
+                        u_interior = self.u[1:-1, :self.N]
+                        u_vec = u_interior.flatten()
+                        b_u = rhs_u[1:-1, :self.N].flatten()
+                        # Try GMRES with the MG preconditioner
+                        sol_u, info_u = spla.gmres(self.A_u, b_u, x0=u_vec, rtol=self.tau, M=M_u)
+                        if info_u != 0:
+                            logging.warning(f"PCG inner solve for A_u did not converge: info={info_u}")
+                        u_interior[:, :] = sol_u.reshape(u_interior.shape)
 
-            # Try the pressure update with adaptive alpha: if the update increases
-            # the residual, reduce alpha by half until it decreases (or reach min).
-            r_before = self.compute_residual_norm()
-            trial_alpha = self.alpha
-            accepted = False
-            for attempt in range(5):
-                p_candidate = self.p + trial_alpha * div
-                r_candidate = self.compute_residual_norm(p_override=p_candidate)
-                if r_candidate <= r_before or trial_alpha <= 1e-16:
-                    # accept update
-                    self.p = p_candidate
-                    # reduce alpha if we had to shrink it significantly
-                    self.alpha = min(self.alpha, trial_alpha)
-                    accepted = True
-                    break
-                trial_alpha *= 0.5
-            if not accepted:
-                # fallback: apply the smallest alpha we attempted
-                self.p = self.p + trial_alpha * div
-                self.alpha = min(self.alpha, trial_alpha)
+                        v_interior = self.v[:self.N, 1:-1]
+                        v_vec = v_interior.flatten()
+                        b_v = rhs_v[:self.N, 1:-1].flatten()
+                        sol_v, info_v = spla.gmres(self.A_v, b_v, x0=v_vec, rtol=self.tau, M=M_v)
+                        if info_v != 0:
+                            logging.warning(f"PCG inner solve for A_v did not converge: info={info_v}")
+                        v_interior[:, :] = sol_v.reshape(v_interior.shape)
+                else:
+                    # fallback to simple rectangular MG on u and v grids
+                    for _ in range(max(1, self.inner_iters)):
+                        self.mg_u.v_cycle(self.u, rhs_u, self.h)
+                        self.mg_v.v_cycle(self.v, rhs_v, self.h)
+            # optional: compute residual AFTER inner solves (debug only)
+            if self.debug and logger is not None:
+                r_after_mg = self.compute_residual_norm()
+                # Recompute r_u, r_v, div after inner solves
+                u_interior = self.u[1:-1, :self.N]
+                u_vec = u_interior.flatten()
+                b_u = rhs_u[1:-1, :self.N].flatten()
+                r_u_vec_after = b_u - (self.A_u.dot(u_vec) if self.A_u is not None else 0)
+                v_interior = self.v[:self.N, 1:-1]
+                v_vec = v_interior.flatten()
+                b_v = rhs_v[:self.N, 1:-1].flatten()
+                r_v_vec_after = b_v - (self.A_v.dot(v_vec) if self.A_v is not None else 0)
+                div_arr_after = (self.u[1:self.N+1, :self.N] - self.u[:self.N, :self.N]) / self.h + (self.v[:self.N, 1:self.N+1] - self.v[:self.N, :self.N]) / self.h
+                div_vec_after = div_arr_after.flatten()
+                logger.info(f"After inner: ||r_u||={np.linalg.norm(r_u_vec_after):.3e}, ||r_v||={np.linalg.norm(r_v_vec_after):.3e}, ||div||={np.linalg.norm(div_vec_after):.3e}")
+            
+            # 3. Update Pressure. Note: Use the same sign convention as B^T (divergence)
+            # In the Kronecker operator implementation (Bx/By) we have div = Bx^T u + By^T v.
+            # The finite-difference divergence computed below is the negative of Bx^T u,
+            # so add a minus sign to get the same sign as 'Bx.T.dot(u)' used elsewhere.
+            div = -((self.u[1:self.N+1, :self.N] - self.u[:self.N, :self.N]) / self.h + (self.v[:self.N, 1:self.N+1] - self.v[:self.N, :self.N]) / self.h)
+
+            # Apply the pressure update with a fixed alpha (no adaptive halving).
+            # Adaptive halving based on the full residual can cause alpha to shrink
+            # to machine precision (and stagnation) because r_candidate is
+            # computed without re-solving velocity. Using a fixed alpha is
+            # consistent with classical Uzawa/Inexact Uzawa methods.
+            self.p = self.p + self.alpha * div
+            # Ensure zero-mean pressure after update
+            self.p -= np.mean(self.p)
             
             # 4. Check Convergence
             r_curr = self.compute_residual_norm()
@@ -384,6 +606,19 @@ class InexactUzawaSolver:
                     logger.info(msg)
                 else:
                     print(msg)
+            if self.debug and logger is not None:
+                # log final norms
+                u_interior = self.u[1:-1, :self.N]
+                u_vec = u_interior.flatten()
+                b_u = rhs_u[1:-1, :self.N].flatten()
+                r_u_vec = b_u - (self.A_u.dot(u_vec) if self.A_u is not None else 0)
+                v_interior = self.v[:self.N, 1:-1]
+                v_vec = v_interior.flatten()
+                b_v = rhs_v[:self.N, 1:-1].flatten()
+                r_v_vec = b_v - (self.A_v.dot(v_vec) if self.A_v is not None else 0)
+                div_arr = (self.u[1:self.N+1, :self.N] - self.u[:self.N, :self.N]) / self.h + (self.v[:self.N, 1:self.N+1] - self.v[:self.N, :self.N]) / self.h
+                div_vec = div_arr.flatten()
+                logger.info(f"End iter {k}: ||r_u||={np.linalg.norm(r_u_vec):.3e}, ||r_v||={np.linalg.norm(r_v_vec):.3e}, ||div||={np.linalg.norm(div_vec):.3e}, rel_res={rel_res:.3e}")
 
         cpu_time = time.time() - t0
         
@@ -409,7 +644,7 @@ if __name__ == "__main__":
     # Task 3: Run for N = 64, 128, 256, 512, 1024, 2048
     # 2048 fits in memory due to Matrix-Free implementation.
     # We demonstrate a subset here.
-    N_list = [64, 128] 
+    N_list = [64, 128, 256, 512, 1024, 2048]
     
     print(f"{'N':<6} | {'Iters':<8} | {'CPU(s)':<10} | {'Error':<12}")
     print("-" * 42)
@@ -424,7 +659,7 @@ if __name__ == "__main__":
     summary_file = os.path.join(results_dir, "results_inexact_uzawa.csv")
     with open(summary_file, "w", newline='') as sf:
         writer = csv.writer(sf)
-        writer.writerow(["N", "Iters", "CPU(s)", "Error", "InitialRelRes", "FinalRelRes", "ResidualFile"])
+        writer.writerow(["N", "Iters", "CPU(s)", "Error", "alpha", "tau", "nu1", "nu2", "InitialRelRes", "FinalRelRes", "ResidualFile"])
         for N in N_list:
             solver = InexactUzawaSolver(N)
             # per-run subfolder
@@ -453,7 +688,7 @@ if __name__ == "__main__":
                     # incrementally log residuals too
                     logger.info(f"Iter {idx}: Rel Res = {val:.6e}")
 
-            summary_row = (N, k, t, e, res_hist[0], res_hist[-1], os.path.basename(residuals_file))
+            summary_row = (N, k, t, e, solver.alpha, solver.tau, solver.nu1, solver.nu2, res_hist[0], res_hist[-1], os.path.basename(residuals_file))
             writer.writerow(summary_row)
             sf.flush()
             summary_rows.append(summary_row)

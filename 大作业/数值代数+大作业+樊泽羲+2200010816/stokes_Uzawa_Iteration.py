@@ -104,6 +104,47 @@ class StokesUzawaSolver:
         g_vals = 4 * np.pi**2 * (2 * np.cos(2*np.pi*Y_v) - 1) * np.sin(2*np.pi*X_v)
         self.G = g_vals.flatten()
 
+    def compute_residual_norm(self, u_vec, v_vec, p_vec):
+        """Compute full Stokes residual L2 norm for the current state.
+        u_vec: (Nu,) flattened interior u unknowns -> reshape ((N-1), N)
+        v_vec: (Nv,) flattened interior v unknowns -> reshape (N, (N-1))
+        p_vec: (Np,) flattened p -> reshape (N, N)
+        """
+        h = self.h
+        N = self.N
+
+        # Reshape vectors to grid layout
+        u_grid = u_vec.reshape((N-1, N))
+        v_grid = v_vec.reshape((N, N-1))
+        p_arr = p_vec.reshape((N, N))
+
+        # Expand to full arrays with Dirichlet boundaries
+        u_ext = np.zeros((N + 1, N))
+        u_ext[1:-1, :] = u_grid
+
+        v_ext = np.zeros((N, N + 1))
+        v_ext[:, 1:-1] = v_grid
+
+        # Momentum residuals
+        # Laplacian for u on interior nodes u_ext[1:-1,:]
+        u_pad = np.pad(u_ext, ((0,0),(1,1)), 'constant')
+        lap_u = (u_ext[0:-2, :] + u_ext[2:, :] + u_pad[1:-1, 0:-2] + u_pad[1:-1, 2:] - 4*u_ext[1:-1, :]) / h**2
+        px = (p_arr[1:, :] - p_arr[:-1, :]) / h
+        r_u = self.F.reshape((N-1, N)) - (-lap_u + px)
+
+        # Laplacian for v on interior nodes v_ext[:,1:-1]
+        v_pad = np.pad(v_ext, ((1,1),(0,0)), 'constant')
+        lap_v = (v_pad[0:-2, 1:-1] + v_pad[2:, 1:-1] + v_ext[:, 0:-2] + v_ext[:, 2:] - 4*v_ext[:, 1:-1]) / h**2
+        py = (p_arr[:, 1:] - p_arr[:, :-1]) / h
+        r_v = self.G.reshape((N, N-1)) - (-lap_v + py)
+
+        # Divergence residual
+        div_vec = self.Bx.T.dot(u_vec) + self.By.T.dot(v_vec)
+        div = div_vec.reshape((N, N))
+
+        total_sq = np.sum(r_u**2) + np.sum(r_v**2) + np.sum(div**2)
+        return np.sqrt(total_sq)
+
     def get_exact_solution(self):
         """Exact solutions for error calc [cite: 136-137]."""
         # Exact u
@@ -137,8 +178,8 @@ class StokesUzawaSolver:
         v = np.zeros(self.Nv)
         p = np.zeros(self.Np)
         
-        # Initial Scaling Norm (Usually ||F||)
-        r0 = np.sqrt(np.sum(self.F**2) + np.sum(self.G**2))
+        # Initial Residual (full Stokes residual)
+        r0 = self.compute_residual_norm(u, v, p)
         
         # Iteration Parameters
         tol = 1e-8
@@ -155,17 +196,19 @@ class StokesUzawaSolver:
             
             # CG Solve (Inner loop)
             # Must be tighter than outer loop to maintain convergence
-            u, _ = spla.cg(self.A_u, rhs_u, x0=u, tol=1e-10, atol=1e-12)
-            v, _ = spla.cg(self.A_v, rhs_v, x0=v, tol=1e-10, atol=1e-12)
+            u, _ = spla.cg(self.A_u, rhs_u, x0=u, rtol=1e-10, atol=1e-12)
+            v, _ = spla.cg(self.A_v, rhs_v, x0=v, rtol=1e-10, atol=1e-12)
             
             # 2. Update Pressure: P = P + alpha * Div(U)
             # Div(U) = B.T * U
             div = self.Bx.T.dot(u) + self.By.T.dot(v)
             p = p + self.alpha * div
+            # Ensure zero-mean pressure (fix null-space)
+            p -= np.mean(p)
             
-            # 3. Check Convergence (Divergence Norm)
-            norm_div = np.linalg.norm(div)
-            rel_res = norm_div / r0
+            # 3. Check Convergence (Full residual norm)
+            r_curr = self.compute_residual_norm(u, v, p)
+            rel_res = r_curr / r0
             res_history.append(rel_res)
             
             k += 1
@@ -190,7 +233,7 @@ class StokesUzawaSolver:
 if __name__ == "__main__":
     # Task 2 Requirement: N = 64, 128, 256, 512
     # N=512 runs significantly slower due to system size.
-    N_values = [64, 128] # Expand list for full assignment
+    N_values = [64, 128, 256, 512] # Expand list for full assignment
     
     print(f"{'N':<6} | {'Iters':<8} | {'CPU Time(s)':<12} | {'Error e_N':<12}")
     print("-" * 45)
