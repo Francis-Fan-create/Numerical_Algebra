@@ -1,0 +1,24 @@
+2026-01-02 01:55:06,686 - INFO - Run Inexact Uzawa: N=64, h=0.015625, cfg=tau1e-4_eps1e-8_alpha1_nu4_L4
+2026-01-02 01:55:06,686 - INFO - --- Solving Inexact Uzawa (N=64) ---
+2026-01-02 01:55:06,687 - INFO - Init Residual: 8.9638e+03
+2026-01-02 01:55:06,687 - INFO - Inner solver: PCG(MG), inner_iters=1, alpha=1.000000e+00
+2026-01-02 01:55:06,735 - INFO - Starting solve with initial alpha=1.000000e+00
+2026-01-02 01:55:13,740 - INFO - Finished: Iters=6, CPU(s)=7.054200, Error=1.495078e-03
+2026-01-02 01:55:13,741 - INFO - Iter 0: Rel Res = 1.000000e+00
+2026-01-02 01:55:13,756 - INFO - Iter 1: Rel Res = 5.624836e-02
+2026-01-02 01:55:13,757 - INFO - Iter 2: Rel Res = 2.298388e-02
+2026-01-02 01:55:13,757 - INFO - Iter 3: Rel Res = 6.720715e-04
+2026-01-02 01:55:13,757 - INFO - Iter 4: Rel Res = 1.819552e-04
+2026-01-02 01:55:13,758 - INFO - Iter 5: Rel Res = 1.276259e-08
+2026-01-02 01:55:13,758 - INFO - Iter 6: Rel Res = 7.001655e-09
+2026-01-02 01:55:13,759 - INFO - Summary: N=64, Iters=6, CPU(s)=7.054200, Error=1.495078e-03, ResidualFile=residuals_inexact_uzawa_tau1e-4_eps1e-8_alpha1_nu4_L4_N64.csv, PCG_Iters=50,50,50,24,15,2
+2026-01-02 07:07:23,546 - INFO - Run Inexact Uzawa: N=64, h=0.015625, cfg=tau1e-4_eps1e-8_alpha1_nu4_L4
+2026-01-02 07:07:23,549 - INFO - --- Solving Inexact Uzawa (N=64) ---
+2026-01-02 07:07:23,550 - INFO - Init Residual: 8.9638e+03
+2026-01-02 07:07:23,550 - INFO - Inner solver: PCG(Coupled-Vcycle x3), inner_iters=1, alpha=1.000000e+00
+2026-01-02 07:07:23,550 - INFO - Starting solve with initial alpha=1.000000e+00
+2026-01-02 07:07:23,566 - INFO - Finished: Iters=2, CPU(s)=0.015569, Error=1.495081e-03
+2026-01-02 07:07:23,567 - INFO - Iter 0: Rel Res = 1.000000e+00
+2026-01-02 07:07:23,567 - INFO - Iter 1: Rel Res = 3.203009e-03
+2026-01-02 07:07:23,568 - INFO - Iter 2: Rel Res = 1.742725e-09
+2026-01-02 07:07:23,569 - INFO - Summary: N=64, Iters=2, CPU(s)=0.015569, Error=1.495081e-03, ResidualFile=residuals_inexact_uzawa_tau1e-4_eps1e-8_alpha1_nu4_L4_N64.csv, PCG_Iters=5,3

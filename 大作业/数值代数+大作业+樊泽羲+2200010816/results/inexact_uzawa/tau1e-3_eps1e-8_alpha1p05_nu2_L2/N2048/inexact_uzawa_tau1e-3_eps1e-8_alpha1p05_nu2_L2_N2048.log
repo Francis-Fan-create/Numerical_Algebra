@@ -1,0 +1,13 @@
+2026-01-02 06:57:59,631 - INFO - Run Inexact Uzawa: N=2048, h=0.00048828125, cfg=tau1e-3_eps1e-8_alpha1p05_nu2_L2
+2026-01-02 06:57:59,631 - INFO - --- Solving Inexact Uzawa (N=2048) ---
+2026-01-02 06:58:00,029 - INFO - Init Residual: 1.4333e+06
+2026-01-02 06:58:00,030 - INFO - Inner solver: PCG(Coupled-Vcycle x3), inner_iters=1, alpha=1.050000e+00
+2026-01-02 06:58:00,050 - INFO - Starting solve with initial alpha=1.050000e+00
+2026-01-02 07:00:41,417 - INFO - Finished: Iters=5, CPU(s)=161.362692, Error=1.471709e-06
+2026-01-02 07:00:41,467 - INFO - Iter 0: Rel Res = 1.000000e+00
+2026-01-02 07:00:41,468 - INFO - Iter 1: Rel Res = 6.840513e-04
+2026-01-02 07:00:41,468 - INFO - Iter 2: Rel Res = 3.417063e-05
+2026-01-02 07:00:41,468 - INFO - Iter 3: Rel Res = 1.693470e-06
+2026-01-02 07:00:41,469 - INFO - Iter 4: Rel Res = 8.325866e-08
+2026-01-02 07:00:41,469 - INFO - Iter 5: Rel Res = 4.698878e-09
+2026-01-02 07:00:41,470 - INFO - Summary: N=2048, Iters=5, CPU(s)=161.362692, Error=1.471709e-06, ResidualFile=residuals_inexact_uzawa_tau1e-3_eps1e-8_alpha1p05_nu2_L2_N2048.csv, PCG_Iters=120,3,3,2,1

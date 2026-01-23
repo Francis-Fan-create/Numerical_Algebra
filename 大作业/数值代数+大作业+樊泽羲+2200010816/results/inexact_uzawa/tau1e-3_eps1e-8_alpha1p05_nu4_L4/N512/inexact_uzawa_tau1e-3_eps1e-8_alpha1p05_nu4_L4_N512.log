@@ -1,0 +1,35 @@
+2026-01-02 01:28:38,975 - INFO - Run Inexact Uzawa: N=512, h=0.001953125, cfg=tau1e-3_eps1e-8_alpha1p05_nu4_L4
+2026-01-02 01:28:38,975 - INFO - --- Solving Inexact Uzawa (N=512) ---
+2026-01-02 01:28:38,991 - INFO - Init Residual: 1.8169e+05
+2026-01-02 01:28:38,992 - INFO - Inner solver: PCG(MG), inner_iters=1, alpha=1.050000e+00
+2026-01-02 01:28:40,118 - INFO - Starting solve with initial alpha=1.050000e+00
+2026-01-02 01:34:56,957 - INFO - Iter 10: Rel Res = 7.5983e-08
+2026-01-02 01:35:05,307 - INFO - Finished: Iters=13, CPU(s)=386.311078, Error=2.335001e-05
+2026-01-02 01:35:05,324 - INFO - Iter 0: Rel Res = 1.000000e+00
+2026-01-02 01:35:05,324 - INFO - Iter 1: Rel Res = 3.534773e-01
+2026-01-02 01:35:05,326 - INFO - Iter 2: Rel Res = 1.651517e-01
+2026-01-02 01:35:05,326 - INFO - Iter 3: Rel Res = 1.666510e-02
+2026-01-02 01:35:05,326 - INFO - Iter 4: Rel Res = 2.485517e-03
+2026-01-02 01:35:05,326 - INFO - Iter 5: Rel Res = 1.302731e-03
+2026-01-02 01:35:05,326 - INFO - Iter 6: Rel Res = 2.923323e-04
+2026-01-02 01:35:05,326 - INFO - Iter 7: Rel Res = 2.972135e-05
+2026-01-02 01:35:05,326 - INFO - Iter 8: Rel Res = 8.019836e-06
+2026-01-02 01:35:05,327 - INFO - Iter 9: Rel Res = 1.402638e-06
+2026-01-02 01:35:05,327 - INFO - Iter 10: Rel Res = 7.598315e-08
+2026-01-02 01:35:05,328 - INFO - Iter 11: Rel Res = 2.527414e-08
+2026-01-02 01:35:05,328 - INFO - Iter 12: Rel Res = 1.115448e-08
+2026-01-02 01:35:05,328 - INFO - Iter 13: Rel Res = 9.417400e-09
+2026-01-02 01:35:05,329 - INFO - Summary: N=512, Iters=13, CPU(s)=386.311078, Error=2.335001e-05, ResidualFile=residuals_inexact_uzawa_tau1e-3_eps1e-8_alpha1p05_nu4_L4_N512.csv, PCG_Iters=50,50,50,50,50,50,50,50,50,50,7,2,1
+2026-01-02 07:00:42,340 - INFO - Run Inexact Uzawa: N=512, h=0.001953125, cfg=tau1e-3_eps1e-8_alpha1p05_nu4_L4
+2026-01-02 07:00:42,355 - INFO - --- Solving Inexact Uzawa (N=512) ---
+2026-01-02 07:00:42,369 - INFO - Init Residual: 1.8169e+05
+2026-01-02 07:00:42,369 - INFO - Inner solver: PCG(Coupled-Vcycle x3), inner_iters=1, alpha=1.050000e+00
+2026-01-02 07:00:42,370 - INFO - Starting solve with initial alpha=1.050000e+00
+2026-01-02 07:00:44,157 - INFO - Finished: Iters=5, CPU(s)=1.790985, Error=2.335281e-05
+2026-01-02 07:00:44,161 - INFO - Iter 0: Rel Res = 1.000000e+00
+2026-01-02 07:00:44,162 - INFO - Iter 1: Rel Res = 1.346621e-03
+2026-01-02 07:00:44,162 - INFO - Iter 2: Rel Res = 6.698178e-05
+2026-01-02 07:00:44,162 - INFO - Iter 3: Rel Res = 3.160630e-06
+2026-01-02 07:00:44,163 - INFO - Iter 4: Rel Res = 1.490687e-07
+2026-01-02 07:00:44,163 - INFO - Iter 5: Rel Res = 7.636434e-09
+2026-01-02 07:00:44,164 - INFO - Summary: N=512, Iters=5, CPU(s)=1.790985, Error=2.335281e-05, ResidualFile=residuals_inexact_uzawa_tau1e-3_eps1e-8_alpha1p05_nu4_L4_N512.csv, PCG_Iters=11,2,2,2,1

@@ -38,11 +38,19 @@ class StokesUzawaSolver:
         h2 = h**2
         N = self.N
 
-        # 1. Laplacian Stencil (1D): [-1, 2, -1] / h^2
-        # This corresponds to -d^2/dx^2 with u=0 at boundaries.
-        def laplace_1d(n_pts):
-            # Diagonals: main=2, off=-1
+        # 1. Laplacian Stencils (1D)
+        # Dirichlet: u=0 at boundaries
+        def laplace_1d_dirichlet(n_pts):
             main_diag = 2 * np.ones(n_pts)
+            off_diag = -1 * np.ones(n_pts - 1)
+            return sp.diags([off_diag, main_diag, off_diag], [-1, 0, 1], shape=(n_pts, n_pts)) / h2
+
+        # Neumann: du/dn prescribed at boundaries (uses modified boundary rows)
+        def laplace_1d_neumann(n_pts):
+            main_diag = 2 * np.ones(n_pts)
+            if n_pts > 1:
+                main_diag[0] = 1
+                main_diag[-1] = 1
             off_diag = -1 * np.ones(n_pts - 1)
             return sp.diags([off_diag, main_diag, off_diag], [-1, 0, 1], shape=(n_pts, n_pts)) / h2
 
@@ -57,16 +65,16 @@ class StokesUzawaSolver:
         # A_u (size Nu x Nu)
         # -Lap(u) = -u_xx - u_yy
         # x-direction: size N-1 (internal edges). y-direction: size N (cells).
-        Dxx_u = laplace_1d(N - 1)
-        Dyy_u = laplace_1d(N)
+        Dxx_u = laplace_1d_dirichlet(N - 1)
+        Dyy_u = laplace_1d_neumann(N)
         # Kron order: x is outer (slow), y is inner (fast) to match row-major flatten
         # A = Dxx (x) Iy + Ix (x) Dyy
         self.A_u = sp.kron(Dxx_u, sp.eye(N)) + sp.kron(sp.eye(N - 1), Dyy_u)
 
         # A_v (size Nv x Nv)
         # x-direction: size N. y-direction: size N-1.
-        Dxx_v = laplace_1d(N)
-        Dyy_v = laplace_1d(N - 1)
+        Dxx_v = laplace_1d_neumann(N)
+        Dyy_v = laplace_1d_dirichlet(N - 1)
         self.A_v = sp.kron(Dxx_v, sp.eye(N - 1)) + sp.kron(sp.eye(N), Dyy_v)
 
         # --- Construct B (Gradient Operator) ---
@@ -90,6 +98,11 @@ class StokesUzawaSolver:
         
         # F(x,y)
         f_vals = -4 * np.pi**2 * (2 * np.cos(2*np.pi*X_u) - 1) * np.sin(2*np.pi*Y_u) + X_u**2
+        # Neumann boundary contributions for u in y-direction
+        x_u = I * self.h
+        u_y = 2 * np.pi * (1 - np.cos(2 * np.pi * x_u))
+        f_vals[:, 0] -= u_y / self.h
+        f_vals[:, -1] += u_y / self.h
         self.F = f_vals.flatten() # Row-major match for Kronecker
 
         # Grid Coordinates for v (Internal)
@@ -102,6 +115,11 @@ class StokesUzawaSolver:
         
         # G(x,y)
         g_vals = 4 * np.pi**2 * (2 * np.cos(2*np.pi*Y_v) - 1) * np.sin(2*np.pi*X_v)
+        # Neumann boundary contributions for v in x-direction
+        y_v = J * self.h
+        v_x = -2 * np.pi * (1 - np.cos(2 * np.pi * y_v))
+        g_vals[0, :] -= v_x / self.h
+        g_vals[-1, :] += v_x / self.h
         self.G = g_vals.flatten()
 
     def compute_residual_norm(self, u_vec, v_vec, p_vec):
@@ -125,22 +143,11 @@ class StokesUzawaSolver:
         v_ext = np.zeros((N, N + 1))
         v_ext[:, 1:-1] = v_grid
 
-        # Momentum residuals
-        # Laplacian for u on interior nodes u_ext[1:-1,:]
-        u_pad = np.pad(u_ext, ((0,0),(1,1)), 'constant')
-        lap_u = (u_ext[0:-2, :] + u_ext[2:, :] + u_pad[1:-1, 0:-2] + u_pad[1:-1, 2:] - 4*u_ext[1:-1, :]) / h**2
-        px = (p_arr[1:, :] - p_arr[:-1, :]) / h
-        r_u = self.F.reshape((N-1, N)) - (-lap_u + px)
-
-        # Laplacian for v on interior nodes v_ext[:,1:-1]
-        v_pad = np.pad(v_ext, ((1,1),(0,0)), 'constant')
-        lap_v = (v_pad[0:-2, 1:-1] + v_pad[2:, 1:-1] + v_ext[:, 0:-2] + v_ext[:, 2:] - 4*v_ext[:, 1:-1]) / h**2
-        py = (p_arr[:, 1:] - p_arr[:, :-1]) / h
-        r_v = self.G.reshape((N, N-1)) - (-lap_v + py)
-
-        # Divergence residual
-        div_vec = self.Bx.T.dot(u_vec) + self.By.T.dot(v_vec)
-        div = div_vec.reshape((N, N))
+        # Residuals in matrix form: A u + B p = F, div = B^T u
+        p_vec = p_arr.flatten()
+        r_u = self.F - (self.A_u.dot(u_vec) + self.Bx.dot(p_vec))
+        r_v = self.G - (self.A_v.dot(v_vec) + self.By.dot(p_vec))
+        div = self.Bx.T.dot(u_vec) + self.By.T.dot(v_vec)
 
         total_sq = np.sum(r_u**2) + np.sum(r_v**2) + np.sum(div**2)
         return np.sqrt(total_sq)
@@ -178,8 +185,8 @@ class StokesUzawaSolver:
         v = np.zeros(self.Nv)
         p = np.zeros(self.Np)
         
-        # Initial Residual (full Stokes residual)
-        r0 = self.compute_residual_norm(u, v, p)
+        # Initial residual will be set using the divergence after first velocity update
+        r0 = None
         
         # Iteration Parameters
         tol = 1e-8
@@ -202,13 +209,16 @@ class StokesUzawaSolver:
             # 2. Update Pressure: P = P + alpha * Div(U)
             # Div(U) = B.T * U
             div = self.Bx.T.dot(u) + self.By.T.dot(v)
+            if r0 is None:
+                r0 = np.linalg.norm(div)
+                if r0 < 1e-12:
+                    r0 = 1.0
             p = p + self.alpha * div
             # Ensure zero-mean pressure (fix null-space)
             p -= np.mean(p)
             
-            # 3. Check Convergence (Full residual norm)
-            r_curr = self.compute_residual_norm(u, v, p)
-            rel_res = r_curr / r0
+            # 3. Check Convergence (Divergence residual)
+            rel_res = np.linalg.norm(div) / r0
             res_history.append(rel_res)
             
             k += 1

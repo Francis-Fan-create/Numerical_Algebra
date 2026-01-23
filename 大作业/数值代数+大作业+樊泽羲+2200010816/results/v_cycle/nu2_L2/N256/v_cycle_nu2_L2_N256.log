@@ -1,0 +1,135 @@
+2026-01-02 00:18:10,643 - INFO - Run V-cycle: N=256, h=0.00390625, cfg=nu2_L2
+2026-01-02 00:18:10,644 - INFO - --- Solving Stokes (DGS-MG) for N=256 ---
+2026-01-02 00:18:10,651 - INFO - Init Residual: 6.5398e+04
+2026-01-02 00:18:10,996 - INFO - Iter 1: Rel Res = 3.2305e-01
+2026-01-02 00:18:11,370 - INFO - Iter 2: Rel Res = 1.0201e-01
+2026-01-02 00:18:11,661 - INFO - Iter 3: Rel Res = 3.4987e-02
+2026-01-02 00:18:11,970 - INFO - Iter 4: Rel Res = 1.3480e-02
+2026-01-02 00:18:12,310 - INFO - Iter 5: Rel Res = 4.8607e-03
+2026-01-02 00:18:12,640 - INFO - Iter 6: Rel Res = 1.9149e-03
+2026-01-02 00:18:13,053 - INFO - Iter 7: Rel Res = 7.8286e-04
+2026-01-02 00:18:13,353 - INFO - Iter 8: Rel Res = 3.2529e-04
+2026-01-02 00:18:13,626 - INFO - Iter 9: Rel Res = 1.4815e-04
+2026-01-02 00:18:13,913 - INFO - Iter 10: Rel Res = 6.8699e-05
+2026-01-02 00:18:14,240 - INFO - Iter 11: Rel Res = 3.2224e-05
+2026-01-02 00:18:14,595 - INFO - Iter 12: Rel Res = 1.5607e-05
+2026-01-02 00:18:14,872 - INFO - Iter 13: Rel Res = 7.5602e-06
+2026-01-02 00:18:15,183 - INFO - Iter 14: Rel Res = 3.6474e-06
+2026-01-02 00:18:15,437 - INFO - Iter 15: Rel Res = 1.7596e-06
+2026-01-02 00:18:15,787 - INFO - Iter 16: Rel Res = 8.5304e-07
+2026-01-02 00:18:16,114 - INFO - Iter 17: Rel Res = 4.0841e-07
+2026-01-02 00:18:16,436 - INFO - Iter 18: Rel Res = 1.9489e-07
+2026-01-02 00:18:16,776 - INFO - Iter 19: Rel Res = 9.3406e-08
+2026-01-02 00:18:17,099 - INFO - Iter 20: Rel Res = 4.4101e-08
+2026-01-02 00:18:17,374 - INFO - Iter 21: Rel Res = 2.0833e-08
+2026-01-02 00:18:17,629 - INFO - Iter 22: Rel Res = 9.8324e-09
+2026-01-02 00:18:17,640 - INFO - Finished: Iters=22, CPU(s)=6.984202, Error=9.340469e-05
+2026-01-02 00:18:17,643 - INFO - Summary: N=256, V-Cycles=22, CPU(s)=6.984202, Error=9.340469e-05, ResidualFile=residuals_v_cycle_nu2_L2_N256.csv
+2026-01-02 00:18:44,107 - INFO - Run V-cycle: N=256, h=0.00390625, cfg=nu2_L2
+2026-01-02 00:18:44,107 - INFO - --- Solving Stokes (DGS-MG) for N=256 ---
+2026-01-02 00:18:44,123 - INFO - Init Residual: 6.5398e+04
+2026-01-02 00:18:44,540 - INFO - Iter 1: Rel Res = 3.2305e-01
+2026-01-02 00:18:44,739 - INFO - Iter 2: Rel Res = 1.0201e-01
+2026-01-02 00:18:44,930 - INFO - Iter 3: Rel Res = 3.4987e-02
+2026-01-02 00:18:45,145 - INFO - Iter 4: Rel Res = 1.3480e-02
+2026-01-02 00:18:45,421 - INFO - Iter 5: Rel Res = 4.8607e-03
+2026-01-02 00:18:45,651 - INFO - Iter 6: Rel Res = 1.9149e-03
+2026-01-02 00:18:45,875 - INFO - Iter 7: Rel Res = 7.8286e-04
+2026-01-02 00:18:46,247 - INFO - Iter 8: Rel Res = 3.2529e-04
+2026-01-02 00:18:46,563 - INFO - Iter 9: Rel Res = 1.4815e-04
+2026-01-02 00:18:46,817 - INFO - Iter 10: Rel Res = 6.8699e-05
+2026-01-02 00:18:47,116 - INFO - Iter 11: Rel Res = 3.2224e-05
+2026-01-02 00:18:47,421 - INFO - Iter 12: Rel Res = 1.5607e-05
+2026-01-02 00:18:47,613 - INFO - Iter 13: Rel Res = 7.5602e-06
+2026-01-02 00:18:47,834 - INFO - Iter 14: Rel Res = 3.6474e-06
+2026-01-02 00:18:48,037 - INFO - Iter 15: Rel Res = 1.7596e-06
+2026-01-02 00:18:48,210 - INFO - Iter 16: Rel Res = 8.5304e-07
+2026-01-02 00:18:48,380 - INFO - Iter 17: Rel Res = 4.0841e-07
+2026-01-02 00:18:48,562 - INFO - Iter 18: Rel Res = 1.9489e-07
+2026-01-02 00:18:48,733 - INFO - Iter 19: Rel Res = 9.3406e-08
+2026-01-02 00:18:48,939 - INFO - Iter 20: Rel Res = 4.4101e-08
+2026-01-02 00:18:49,178 - INFO - Iter 21: Rel Res = 2.0833e-08
+2026-01-02 00:18:49,445 - INFO - Iter 22: Rel Res = 9.8324e-09
+2026-01-02 00:18:49,452 - INFO - Finished: Iters=22, CPU(s)=5.339128, Error=9.340469e-05
+2026-01-02 00:18:49,453 - INFO - Summary: N=256, V-Cycles=22, CPU(s)=5.339128, Error=9.340469e-05, ResidualFile=residuals_v_cycle_nu2_L2_N256.csv
+2026-01-02 04:22:07,577 - INFO - Run V-cycle: N=256, h=0.00390625, cfg=nu2_L2
+2026-01-02 04:22:07,578 - INFO - --- Solving Stokes (DGS-MG) for N=256 ---
+2026-01-02 04:22:07,580 - INFO - Init Residual: 6.5398e+04
+2026-01-02 04:22:07,592 - INFO - Iter 1: Rel Res = 3.2305e-01
+2026-01-02 04:22:07,602 - INFO - Iter 2: Rel Res = 1.0201e-01
+2026-01-02 04:22:07,612 - INFO - Iter 3: Rel Res = 3.4987e-02
+2026-01-02 04:22:07,624 - INFO - Iter 4: Rel Res = 1.3480e-02
+2026-01-02 04:22:07,634 - INFO - Iter 5: Rel Res = 4.8607e-03
+2026-01-02 04:22:07,646 - INFO - Iter 6: Rel Res = 1.9149e-03
+2026-01-02 04:22:07,654 - INFO - Iter 7: Rel Res = 7.8286e-04
+2026-01-02 04:22:07,666 - INFO - Iter 8: Rel Res = 3.2529e-04
+2026-01-02 04:22:07,676 - INFO - Iter 9: Rel Res = 1.4815e-04
+2026-01-02 04:22:07,687 - INFO - Iter 10: Rel Res = 6.8699e-05
+2026-01-02 04:22:07,694 - INFO - Iter 11: Rel Res = 3.2224e-05
+2026-01-02 04:22:07,708 - INFO - Iter 12: Rel Res = 1.5607e-05
+2026-01-02 04:22:07,720 - INFO - Iter 13: Rel Res = 7.5602e-06
+2026-01-02 04:22:07,730 - INFO - Iter 14: Rel Res = 3.6474e-06
+2026-01-02 04:22:07,740 - INFO - Iter 15: Rel Res = 1.7596e-06
+2026-01-02 04:22:07,750 - INFO - Iter 16: Rel Res = 8.5304e-07
+2026-01-02 04:22:07,760 - INFO - Iter 17: Rel Res = 4.0841e-07
+2026-01-02 04:22:07,771 - INFO - Iter 18: Rel Res = 1.9489e-07
+2026-01-02 04:22:07,781 - INFO - Iter 19: Rel Res = 9.3406e-08
+2026-01-02 04:22:07,791 - INFO - Iter 20: Rel Res = 4.4101e-08
+2026-01-02 04:22:07,803 - INFO - Iter 21: Rel Res = 2.0833e-08
+2026-01-02 04:22:07,813 - INFO - Iter 22: Rel Res = 9.8324e-09
+2026-01-02 04:22:07,814 - INFO - Finished: Iters=22, CPU(s)=0.234993, Error=9.340469e-05
+2026-01-02 04:22:07,832 - INFO - Summary: N=256, V-Cycles=22, CPU(s)=0.234993, Error=9.340469e-05, ResidualFile=residuals_v_cycle_nu2_L2_N256.csv
+2026-01-02 04:27:32,584 - INFO - Run V-cycle: N=256, h=0.00390625, cfg=nu2_L2
+2026-01-02 04:27:32,584 - INFO - --- Solving Stokes (DGS-MG) for N=256 ---
+2026-01-02 04:27:32,586 - INFO - Init Residual: 6.5398e+04
+2026-01-02 04:27:32,596 - INFO - Iter 1: Rel Res = 3.2305e-01
+2026-01-02 04:27:32,604 - INFO - Iter 2: Rel Res = 1.0201e-01
+2026-01-02 04:27:32,613 - INFO - Iter 3: Rel Res = 3.4987e-02
+2026-01-02 04:27:32,623 - INFO - Iter 4: Rel Res = 1.3480e-02
+2026-01-02 04:27:32,632 - INFO - Iter 5: Rel Res = 4.8607e-03
+2026-01-02 04:27:32,641 - INFO - Iter 6: Rel Res = 1.9149e-03
+2026-01-02 04:27:32,644 - INFO - Iter 7: Rel Res = 7.8286e-04
+2026-01-02 04:27:32,661 - INFO - Iter 8: Rel Res = 3.2529e-04
+2026-01-02 04:27:32,671 - INFO - Iter 9: Rel Res = 1.4815e-04
+2026-01-02 04:27:32,680 - INFO - Iter 10: Rel Res = 6.8699e-05
+2026-01-02 04:27:32,687 - INFO - Iter 11: Rel Res = 3.2224e-05
+2026-01-02 04:27:32,700 - INFO - Iter 12: Rel Res = 1.5607e-05
+2026-01-02 04:27:32,711 - INFO - Iter 13: Rel Res = 7.5602e-06
+2026-01-02 04:27:32,721 - INFO - Iter 14: Rel Res = 3.6474e-06
+2026-01-02 04:27:32,730 - INFO - Iter 15: Rel Res = 1.7596e-06
+2026-01-02 04:27:32,739 - INFO - Iter 16: Rel Res = 8.5304e-07
+2026-01-02 04:27:32,747 - INFO - Iter 17: Rel Res = 4.0841e-07
+2026-01-02 04:27:32,757 - INFO - Iter 18: Rel Res = 1.9489e-07
+2026-01-02 04:27:32,766 - INFO - Iter 19: Rel Res = 9.3406e-08
+2026-01-02 04:27:32,776 - INFO - Iter 20: Rel Res = 4.4101e-08
+2026-01-02 04:27:32,786 - INFO - Iter 21: Rel Res = 2.0833e-08
+2026-01-02 04:27:32,796 - INFO - Iter 22: Rel Res = 9.8324e-09
+2026-01-02 04:27:32,799 - INFO - Finished: Iters=22, CPU(s)=0.212075, Error=9.340469e-05
+2026-01-02 04:27:32,800 - INFO - Summary: N=256, V-Cycles=22, CPU(s)=0.212075, Error=9.340469e-05, ResidualFile=residuals_v_cycle_nu2_L2_N256.csv
+2026-01-02 04:30:40,109 - INFO - Run V-cycle: N=256, h=0.00390625, cfg=nu2_L2
+2026-01-02 04:30:40,110 - INFO - --- Solving Stokes (DGS-MG) for N=256 ---
+2026-01-02 04:30:40,112 - INFO - Init Residual: 6.5398e+04
+2026-01-02 04:30:40,122 - INFO - Iter 1: Rel Res = 3.2305e-01
+2026-01-02 04:30:40,135 - INFO - Iter 2: Rel Res = 1.0201e-01
+2026-01-02 04:30:40,146 - INFO - Iter 3: Rel Res = 3.4987e-02
+2026-01-02 04:30:40,158 - INFO - Iter 4: Rel Res = 1.3480e-02
+2026-01-02 04:30:40,170 - INFO - Iter 5: Rel Res = 4.8607e-03
+2026-01-02 04:30:40,182 - INFO - Iter 6: Rel Res = 1.9149e-03
+2026-01-02 04:30:40,192 - INFO - Iter 7: Rel Res = 7.8286e-04
+2026-01-02 04:30:40,202 - INFO - Iter 8: Rel Res = 3.2529e-04
+2026-01-02 04:30:40,203 - INFO - Iter 9: Rel Res = 1.4815e-04
+2026-01-02 04:30:40,223 - INFO - Iter 10: Rel Res = 6.8699e-05
+2026-01-02 04:30:40,234 - INFO - Iter 11: Rel Res = 3.2224e-05
+2026-01-02 04:30:40,243 - INFO - Iter 12: Rel Res = 1.5607e-05
+2026-01-02 04:30:40,253 - INFO - Iter 13: Rel Res = 7.5602e-06
+2026-01-02 04:30:40,264 - INFO - Iter 14: Rel Res = 3.6474e-06
+2026-01-02 04:30:40,275 - INFO - Iter 15: Rel Res = 1.7596e-06
+2026-01-02 04:30:40,285 - INFO - Iter 16: Rel Res = 8.5304e-07
+2026-01-02 04:30:40,296 - INFO - Iter 17: Rel Res = 4.0841e-07
+2026-01-02 04:30:40,307 - INFO - Iter 18: Rel Res = 1.9489e-07
+2026-01-02 04:30:40,317 - INFO - Iter 19: Rel Res = 9.3406e-08
+2026-01-02 04:30:40,324 - INFO - Iter 20: Rel Res = 4.4101e-08
+2026-01-02 04:30:40,336 - INFO - Iter 21: Rel Res = 2.0833e-08
+2026-01-02 04:30:40,346 - INFO - Iter 22: Rel Res = 9.8324e-09
+2026-01-02 04:30:40,348 - INFO - Finished: Iters=22, CPU(s)=0.235979, Error=9.340469e-05
+2026-01-02 04:30:40,350 - INFO - Summary: N=256, V-Cycles=22, CPU(s)=0.235979, Error=9.340469e-05, ResidualFile=residuals_v_cycle_nu2_L2_N256.csv
